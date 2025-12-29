@@ -1,0 +1,1155 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIT Projectile Simulator | Advanced Projectile Simulation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/stats.min.js"></script>
+    <style>
+        :root {
+            --primary: #0057FF;    /* Deep Blue */
+            --secondary: #00D4AA;  /* Teal */
+            --accent: #FF6B9D;     /* Pink */
+            --dark: #0A0E17;       /* Dark Blue/Black */
+            --light: #F5F9FF;      /* Light Blue/White */
+            --gray: #2A3549;       /* Medium Gray */
+            --success: #00D4AA;    /* Teal (success) */
+            --warning: #FFB347;    /* Orange (warning) */
+            --danger: #FF6B9D;     /* Pink (danger) */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            grid-template-rows: 70px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Header Styles */
+        .header {
+            grid-column: 1 / span 3;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            color: white;
+            background-color: rgba(255, 255, 255, 0.2);
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, white, #e0f7fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background-color: rgba(16, 22, 36, 0.9);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid var(--gray);
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .right-panel {
+            border-left: 1px solid var(--gray);
+            border-right: none;
+        }
+
+        .panel-title {
+            color: var(--secondary);
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title i {
+            font-size: 22px;
+        }
+
+        /* Simulation Container */
+        .simulation-container {
+            position: relative;
+            background-color: #0f1525;
+            overflow: hidden;
+        }
+
+        #simulation-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .simulation-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(10, 14, 23, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--accent);
+            max-width: 300px;
+        }
+
+        .simulation-overlay h3 {
+            color: var(--secondary);
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .simulation-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #a0b3d9;
+            margin-bottom: 3px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Control Styles */
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: #b0c4de;
+            font-size: 15px;
+        }
+
+        .control-value {
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .slider-container {
+            margin-bottom: 15px;
+        }
+
+        .slider-with-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-with-input input[type="range"] {
+            flex-grow: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--gray);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-with-input input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        .slider-with-input input[type="number"] {
+            width: 70px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--gray);
+            border-radius: 5px;
+            color: white;
+            padding: 5px 8px;
+            text-align: center;
+        }
+
+        /* Button Styles */
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .btn:hover {
+            background-color: #0047d4;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 87, 255, 0.4);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+        }
+
+        .btn-success:hover {
+            background-color: #00b894;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background-color: #ff4d7f;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        /* Visualization Panel */
+        .visualization-container {
+            margin-top: 20px;
+        }
+
+        .chart-placeholder {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            margin-bottom: 20px;
+            border: 1px dashed var(--gray);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .data-table th {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--gray);
+        }
+
+        .data-table tr:hover {
+            background-color: rgba(0, 87, 255, 0.1);
+        }
+
+        /* Preset Styles */
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preset-btn {
+            background-color: rgba(42, 53, 73, 0.5);
+            border: 1px solid var(--gray);
+            color: white;
+            padding: 10px 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(10, 14, 23, 0.9);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #a0b3d9;
+            border-top: 1px solid var(--gray);
+        }
+
+        .simulation-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--success);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 280px 1fr 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="logo-text">QuantumLaunch 3D</div>
+            </div>
+            <div class="header-controls">
+                <button class="btn btn-success" id="simulate-btn">
+                    <i class="fas fa-play"></i> Launch Simulation
+                </button>
+                <button class="btn btn-danger" id="reset-btn">
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+        </header>
+
+        <!-- Left Panel - Controls -->
+        <div class="panel">
+            <h2 class="panel-title"><i class="fas fa-sliders-h"></i> Launch Parameters</h2>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Initial Velocity</span>
+                    <span class="control-value" id="velocity-value">50 m/s</span>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-with-input">
+                        <input type="range" id="velocity-slider" min="10" max="200" value="50" step="1">
+                        <input type="number" id="velocity-input" min="10" max="200" value="50">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Launch Angle</span>
+                    <span class="control-value" id="angle-value">45°</span>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-with-input">
+                        <input type="range" id="angle-slider" min="0" max="90" value="45" step="1">
+                        <input type="number" id="angle-input" min="0" max="90" value="45">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Projectile Mass</span>
+                    <span class="control-value" id="mass-value">10 kg</span>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-with-input">
+                        <input type="range" id="mass-slider" min="1" max="100" value="10" step="1">
+                        <input type="number" id="mass-input" min="1" max="100" value="10">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Gravity</span>
+                    <span class="control-value" id="gravity-value">9.8 m/s²</span>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-with-input">
+                        <input type="range" id="gravity-slider" min="1" max="20" value="9.8" step="0.1">
+                        <input type="number" id="gravity-input" min="1" max="20" value="9.8" step="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Air Resistance</span>
+                    <span class="control-value" id="resistance-value">0.1</span>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-with-input">
+                        <input type="range" id="resistance-slider" min="0" max="1" value="0.1" step="0.01">
+                        <input type="number" id="resistance-input" min="0" max="1" value="0.1" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="panel-title" style="margin-top: 30px; font-size: 18px;">
+                <i class="fas fa-bolt"></i> Quick Presets
+            </h3>
+            <div class="preset-buttons">
+                <button class="preset-btn" data-preset="cannon">Cannon Shot</button>
+                <button class="preset-btn" data-preset="parabolic">Parabolic</button>
+                <button class="preset-btn" data-preset="space">Space Launch</button>
+                <button class="preset-btn" data-preset="lowgravity">Low Gravity</button>
+                <button class="preset-btn" data-preset="highangle">High Angle</button>
+                <button class="preset-btn" data-preset="maxpower">Max Power</button>
+            </div>
+
+            <button class="btn" id="randomize-btn">
+                <i class="fas fa-random"></i> Randomize Parameters
+            </button>
+        </div>
+
+        <!-- Main Simulation Area -->
+        <div class="simulation-container">
+            <canvas id="simulation-canvas"></canvas>
+            
+            <div class="simulation-overlay">
+                <h3>Live Simulation Data</h3>
+                <p>Real-time projectile tracking with 3D visualization</p>
+                <div class="simulation-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Current Height</div>
+                        <div class="stat-value" id="current-height">0 m</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Current Distance</div>
+                        <div class="stat-value" id="current-distance">0 m</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Air Time</div>
+                        <div class="stat-value" id="air-time">0 s</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Peak Height</div>
+                        <div class="stat-value" id="peak-height">0 m</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Visualization -->
+        <div class="panel right-panel">
+            <h2 class="panel-title"><i class="fas fa-chart-line"></i> Data Visualization</h2>
+            
+            <div class="visualization-container">
+                <div class="chart-placeholder">
+                    <div class="chart-text">
+                        <i class="fas fa-chart-bar" style="font-size: 40px; margin-bottom: 10px;"></i>
+                        <div>Height vs. Distance Graph</div>
+                    </div>
+                </div>
+                
+                <h3 class="panel-title" style="margin-top: 30px; font-size: 18px;">
+                    <i class="fas fa-table"></i> Simulation Data
+                </h3>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Time (s)</th>
+                            <th>Height (m)</th>
+                            <th>Distance (m)</th>
+                            <th>Velocity (m/s)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table-body">
+                        <tr><td>0.0</td><td>0.0</td><td>0.0</td><td>50.0</td></tr>
+                        <tr><td>1.0</td><td>35.3</td><td>35.3</td><td>45.2</td></tr>
+                        <tr><td>2.0</td><td>60.8</td><td>70.7</td><td>40.4</td></tr>
+                        <tr><td>3.0</td><td>76.5</td><td>106.0</td><td>35.6</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn" id="export-btn">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+                <button class="btn" id="share-btn">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="simulation-status">
+                <div class="status-indicator"></div>
+                <span>Simulation Ready</span>
+            </div>
+            <div class="simulation-info">
+                <span>3D Projectile Physics Simulation | QuantumLaunch 3D v1.0</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Three.js variables
+        let scene, camera, renderer, controls;
+        let projectile, trajectoryLine, ground;
+        let simulationRunning = false;
+        let simulationData = [];
+        
+        // Physics parameters
+        let initialVelocity = 50; // m/s
+        let launchAngle = 45; // degrees
+        let mass = 10; // kg
+        let gravity = 9.8; // m/s²
+        let airResistance = 0.1;
+        
+        // Simulation variables
+        let time = 0;
+        let maxHeight = 0;
+        let totalDistance = 0;
+        let airTime = 0;
+        
+        // DOM Elements
+        const velocitySlider = document.getElementById('velocity-slider');
+        const velocityInput = document.getElementById('velocity-input');
+        const velocityValue = document.getElementById('velocity-value');
+        
+        const angleSlider = document.getElementById('angle-slider');
+        const angleInput = document.getElementById('angle-input');
+        const angleValue = document.getElementById('angle-value');
+        
+        const massSlider = document.getElementById('mass-slider');
+        const massInput = document.getElementById('mass-input');
+        const massValue = document.getElementById('mass-value');
+        
+        const gravitySlider = document.getElementById('gravity-slider');
+        const gravityInput = document.getElementById('gravity-input');
+        const gravityValue = document.getElementById('gravity-value');
+        
+        const resistanceSlider = document.getElementById('resistance-slider');
+        const resistanceInput = document.getElementById('resistance-input');
+        const resistanceValue = document.getElementById('resistance-value');
+        
+        const simulateBtn = document.getElementById('simulate-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const randomizeBtn = document.getElementById('randomize-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        
+        // Stats display elements
+        const currentHeightEl = document.getElementById('current-height');
+        const currentDistanceEl = document.getElementById('current-distance');
+        const airTimeEl = document.getElementById('air-time');
+        const peakHeightEl = document.getElementById('peak-height');
+        
+        // Initialize Three.js scene
+        function initThreeJS() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f1525);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(30, 20, 50);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('simulation-canvas'),
+                antialias: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Add orbit controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 100, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -100;
+            directionalLight.shadow.camera.right = 100;
+            directionalLight.shadow.camera.top = 100;
+            directionalLight.shadow.camera.bottom = -100;
+            scene.add(directionalLight);
+            
+            // Create ground
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x1a2538,
+                side: THREE.DoubleSide 
+            });
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = Math.PI / 2;
+            ground.position.y = -0.5;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Create grid helper
+            const gridHelper = new THREE.GridHelper(200, 20, 0x2a3549, 0x2a3549);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+            
+            // Create projectile (sphere)
+            const projectileGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+            const projectileMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0xFF6B9D,
+                shininess: 100 
+            });
+            projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
+            projectile.castShadow = true;
+            scene.add(projectile);
+            
+            // Create trajectory line
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00D4AA,
+                linewidth: 2,
+                transparent: true,
+                opacity: 0.7
+            });
+            const lineGeometry = new THREE.BufferGeometry();
+            trajectoryLine = new THREE.Line(lineGeometry, lineMaterial);
+            scene.add(trajectoryLine);
+            
+            // Create launch platform
+            const platformGeometry = new THREE.BoxGeometry(8, 1, 8);
+            const platformMaterial = new THREE.MeshLambertMaterial({ color: 0x2A3549 });
+            const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+            platform.position.set(0, 0, 0);
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            scene.add(platform);
+            
+            // Create target
+            createTarget(100, 0, 0);
+            
+            // Add axes helper
+            const axesHelper = new THREE.AxesHelper(20);
+            scene.add(axesHelper);
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation loop
+            animate();
+        }
+        
+        // Create a target at specified position
+        function createTarget(x, y, z) {
+            const targetGroup = new THREE.Group();
+            
+            // Target pole
+            const poleGeometry = new THREE.CylinderGeometry(0.3, 0.3, 10, 8);
+            const poleMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
+            const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+            pole.position.set(0, 5, 0);
+            targetGroup.add(pole);
+            
+            // Target disc
+            const discGeometry = new THREE.CylinderGeometry(2, 2, 0.5, 16);
+            const discMaterial = new THREE.MeshLambertMaterial({ color: 0xFF6B9D });
+            const disc = new THREE.Mesh(discGeometry, discMaterial);
+            disc.position.set(0, 10, 0);
+            targetGroup.add(disc);
+            
+            // Target rings
+            const ringGeometry = new THREE.TorusGeometry(1.5, 0.1, 8, 16);
+            const ringMaterial = new THREE.MeshLambertMaterial({ color: 0x00D4AA });
+            const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+            ring.position.set(0, 10, 0);
+            ring.rotation.x = Math.PI / 2;
+            targetGroup.add(ring);
+            
+            targetGroup.position.set(x, y, z);
+            scene.add(targetGroup);
+        }
+        
+        // Update projectile position based on physics
+        function updateProjectilePosition() {
+            if (!simulationRunning) return;
+            
+            // Convert angle to radians
+            const angleRad = launchAngle * Math.PI / 180;
+            
+            // Calculate velocity components
+            const vx0 = initialVelocity * Math.cos(angleRad);
+            const vy0 = initialVelocity * Math.sin(angleRad);
+            
+            // Calculate position with air resistance
+            const k = airResistance;
+            const vx = vx0 * Math.exp(-k * time / mass);
+            const vy = (vy0 + (gravity * mass / k)) * Math.exp(-k * time / mass) - (gravity * mass / k);
+            
+            const x = (vx0 * mass / k) * (1 - Math.exp(-k * time / mass));
+            const y = (mass / k) * ((vy0 + (gravity * mass / k)) * (1 - Math.exp(-k * time / mass)) - gravity * time);
+            
+            // Update projectile position
+            projectile.position.set(x, y, 0);
+            
+            // Update trajectory line
+            simulationData.push({ x, y, z: 0, time });
+            updateTrajectoryLine();
+            
+            // Update stats
+            updateStats(x, y);
+            
+            // Check if projectile has hit the ground
+            if (y <= 0 && time > 0) {
+                simulationRunning = false;
+                simulateBtn.innerHTML = '<i class="fas fa-play"></i> Launch Simulation';
+                airTime = time;
+                airTimeEl.textContent = airTime.toFixed(2) + ' s';
+                updateDataTable();
+            }
+            
+            time += 0.05; // Increment time
+        }
+        
+        // Update the trajectory line
+        function updateTrajectoryLine() {
+            const positions = [];
+            simulationData.forEach(point => {
+                positions.push(point.x, point.y, point.z);
+            });
+            
+            const lineGeometry = new THREE.BufferGeometry();
+            lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            trajectoryLine.geometry.dispose();
+            trajectoryLine.geometry = lineGeometry;
+        }
+        
+        // Update stats display
+        function updateStats(x, y) {
+            currentHeightEl.textContent = y.toFixed(2) + ' m';
+            currentDistanceEl.textContent = x.toFixed(2) + ' m';
+            airTimeEl.textContent = time.toFixed(2) + ' s';
+            
+            if (y > maxHeight) {
+                maxHeight = y;
+                peakHeightEl.textContent = maxHeight.toFixed(2) + ' m';
+            }
+        }
+        
+        // Update data table
+        function updateDataTable() {
+            const tableBody = document.getElementById('data-table-body');
+            tableBody.innerHTML = '';
+            
+            // Add every 5th data point to the table
+            for (let i = 0; i < simulationData.length; i += 5) {
+                const point = simulationData[i];
+                const velocity = calculateVelocityAtTime(point.time);
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${point.time.toFixed(1)}</td>
+                    <td>${point.y.toFixed(1)}</td>
+                    <td>${point.x.toFixed(1)}</td>
+                    <td>${velocity.toFixed(1)}</td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
+        
+        // Calculate velocity at a given time
+        function calculateVelocityAtTime(t) {
+            const angleRad = launchAngle * Math.PI / 180;
+            const vx0 = initialVelocity * Math.cos(angleRad);
+            const vy0 = initialVelocity * Math.sin(angleRad);
+            
+            const k = airResistance;
+            const vx = vx0 * Math.exp(-k * t / mass);
+            const vy = (vy0 + (gravity * mass / k)) * Math.exp(-k * t / mass) - (gravity * mass / k);
+            
+            return Math.sqrt(vx * vx + vy * vy);
+        }
+        
+        // Reset simulation
+        function resetSimulation() {
+            simulationRunning = false;
+            time = 0;
+            maxHeight = 0;
+            simulationData = [];
+            
+            // Reset projectile position
+            projectile.position.set(0, 0, 0);
+            
+            // Clear trajectory line
+            const emptyGeometry = new THREE.BufferGeometry();
+            trajectoryLine.geometry.dispose();
+            trajectoryLine.geometry = emptyGeometry;
+            
+            // Reset stats display
+            currentHeightEl.textContent = '0 m';
+            currentDistanceEl.textContent = '0 m';
+            airTimeEl.textContent = '0 s';
+            peakHeightEl.textContent = '0 m';
+            
+            // Reset button text
+            simulateBtn.innerHTML = '<i class="fas fa-play"></i> Launch Simulation';
+            
+            // Clear data table
+            const tableBody = document.getElementById('data-table-body');
+            tableBody.innerHTML = '';
+        }
+        
+        // Start simulation
+        function startSimulation() {
+            if (simulationRunning) {
+                simulationRunning = false;
+                simulateBtn.innerHTML = '<i class="fas fa-play"></i> Launch Simulation';
+            } else {
+                resetSimulation();
+                simulationRunning = true;
+                simulateBtn.innerHTML = '<i class="fas fa-pause"></i> Pause Simulation';
+            }
+        }
+        
+        // Randomize parameters
+        function randomizeParameters() {
+            initialVelocity = Math.floor(Math.random() * (150 - 20 + 1)) + 20;
+            launchAngle = Math.floor(Math.random() * (75 - 15 + 1)) + 15;
+            mass = Math.floor(Math.random() * (50 - 5 + 1)) + 5;
+            gravity = (Math.random() * (15 - 3) + 3).toFixed(1);
+            airResistance = (Math.random() * 0.5).toFixed(2);
+            
+            updateSlidersAndInputs();
+            resetSimulation();
+        }
+        
+        // Apply preset parameters
+        function applyPreset(presetName) {
+            switch(presetName) {
+                case 'cannon':
+                    initialVelocity = 80;
+                    launchAngle = 30;
+                    mass = 20;
+                    gravity = 9.8;
+                    airResistance = 0.05;
+                    break;
+                case 'parabolic':
+                    initialVelocity = 40;
+                    launchAngle = 60;
+                    mass = 5;
+                    gravity = 9.8;
+                    airResistance = 0.02;
+                    break;
+                case 'space':
+                    initialVelocity = 120;
+                    launchAngle = 45;
+                    mass = 1;
+                    gravity = 3.7;
+                    airResistance = 0.01;
+                    break;
+                case 'lowgravity':
+                    initialVelocity = 30;
+                    launchAngle = 45;
+                    mass = 10;
+                    gravity = 1.6;
+                    airResistance = 0.001;
+                    break;
+                case 'highangle':
+                    initialVelocity = 50;
+                    launchAngle = 75;
+                    mass = 10;
+                    gravity = 9.8;
+                    airResistance = 0.1;
+                    break;
+                case 'maxpower':
+                    initialVelocity = 200;
+                    launchAngle = 25;
+                    mass = 100;
+                    gravity = 9.8;
+                    airResistance = 0.2;
+                    break;
+            }
+            
+            updateSlidersAndInputs();
+            resetSimulation();
+        }
+        
+        // Update all sliders and inputs with current values
+        function updateSlidersAndInputs() {
+            velocitySlider.value = initialVelocity;
+            velocityInput.value = initialVelocity;
+            velocityValue.textContent = initialVelocity + ' m/s';
+            
+            angleSlider.value = launchAngle;
+            angleInput.value = launchAngle;
+            angleValue.textContent = launchAngle + '°';
+            
+            massSlider.value = mass;
+            massInput.value = mass;
+            massValue.textContent = mass + ' kg';
+            
+            gravitySlider.value = gravity;
+            gravityInput.value = gravity;
+            gravityValue.textContent = gravity + ' m/s²';
+            
+            resistanceSlider.value = airResistance;
+            resistanceInput.value = airResistance;
+            resistanceValue.textContent = airResistance;
+        }
+        
+        // Export simulation data
+        function exportData() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Time (s),Height (m),Distance (m),Velocity (m/s)\n";
+            
+            simulationData.forEach(point => {
+                const velocity = calculateVelocityAtTime(point.time);
+                csvContent += `${point.time.toFixed(2)},${point.y.toFixed(2)},${point.x.toFixed(2)},${velocity.toFixed(2)}\n`;
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "projectile_simulation_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Share simulation
+        function shareSimulation() {
+            const params = {
+                velocity: initialVelocity,
+                angle: launchAngle,
+                mass: mass,
+                gravity: gravity,
+                resistance: airResistance
+            };
+            
+            const urlParams = new URLSearchParams(params).toString();
+            const url = `${window.location.origin}${window.location.pathname}?${urlParams}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'QuantumLaunch 3D Simulation',
+                    text: `Check out my projectile simulation with velocity: ${initialVelocity} m/s, angle: ${launchAngle}°`,
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Simulation link copied to clipboard!');
+                });
+            }
+        }
+        
+        // Handle window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updateProjectilePosition();
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize the application
+        function init() {
+            initThreeJS();
+            
+            // Set up event listeners for sliders and inputs
+            velocitySlider.addEventListener('input', function() {
+                initialVelocity = parseInt(this.value);
+                velocityInput.value = initialVelocity;
+                velocityValue.textContent = initialVelocity + ' m/s';
+                resetSimulation();
+            });
+            
+            velocityInput.addEventListener('change', function() {
+                let value = parseInt(this.value);
+                if (value < 10) value = 10;
+                if (value > 200) value = 200;
+                initialVelocity = value;
+                velocitySlider.value = value;
+                velocityInput.value = value;
+                velocityValue.textContent = value + ' m/s';
+                resetSimulation();
+            });
+            
+            angleSlider.addEventListener('input', function() {
+                launchAngle = parseInt(this.value);
+                angleInput.value = launchAngle;
+                angleValue.textContent = launchAngle + '°';
+                resetSimulation();
+            });
+            
+            angleInput.addEventListener('change', function() {
+                let value = parseInt(this.value);
+                if (value < 0) value = 0;
+                if (value > 90) value = 90;
+                launchAngle = value;
+                angleSlider.value = value;
+                angleInput.value = value;
+                angleValue.textContent = value + '°';
+                resetSimulation();
+            });
+            
+            massSlider.addEventListener('input', function() {
+                mass = parseInt(this.value);
+                massInput.value = mass;
+                massValue.textContent = mass + ' kg';
+                resetSimulation();
+            });
+            
+            massInput.addEventListener('change', function() {
+                let value = parseInt(this.value);
+                if (value < 1) value = 1;
+                if (value > 100) value = 100;
+                mass = value;
+                massSlider.value = value;
+                massInput.value = value;
+                massValue.textContent = value + ' kg';
+                resetSimulation();
+            });
+            
+            gravitySlider.addEventListener('input', function() {
+                gravity = parseFloat(this.value);
+                gravityInput.value = gravity;
+                gravityValue.textContent = gravity + ' m/s²';
+                resetSimulation();
+            });
+            
+            gravityInput.addEventListener('change', function() {
+                let value = parseFloat(this.value);
+                if (value < 1) value = 1;
+                if (value > 20) value = 20;
+                gravity = value;
+                gravitySlider.value = value;
+                gravityInput.value = value;
+                gravityValue.textContent = value + ' m/s²';
+                resetSimulation();
+            });
+            
+            resistanceSlider.addEventListener('input', function() {
+                airResistance = parseFloat(this.value);
+                resistanceInput.value = airResistance;
+                resistanceValue.textContent = airResistance;
+                resetSimulation();
+            });
+            
+            resistanceInput.addEventListener('change', function() {
+                let value = parseFloat(this.value);
+                if (value < 0) value = 0;
+                if (value > 1) value = 1;
+                airResistance = value;
+                resistanceSlider.value = value;
+                resistanceInput.value = value;
+                resistanceValue.textContent = value;
+                resetSimulation();
+            });
+            
+            // Button event listeners
+            simulateBtn.addEventListener('click', startSimulation);
+            resetBtn.addEventListener('click', resetSimulation);
+            randomizeBtn.addEventListener('click', randomizeParameters);
+            exportBtn.addEventListener('click', exportData);
+            shareBtn.addEventListener('click', shareSimulation);
+            
+            // Preset buttons
+            presetBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const preset = this.getAttribute('data-preset');
+                    applyPreset(preset);
+                });
+            });
+            
+            // Initialize with default values
+            updateSlidersAndInputs();
+        }
+        
+        // Start the application when the page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
